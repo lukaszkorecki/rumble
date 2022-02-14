@@ -10,6 +10,12 @@ A set of helpers and tools for a smoother development REPL workflow.
 
 Add to your `.lein/profiles.clj` or whatever `tools.deps` uses. Once you connect to the nREPL server see [usage](#usage):
 
+You can auto load all of the repl helpers by adding *injections* to your `profile.clj`:
+
+```
+:injections [ (require '[rumble.repl :as R])]
+```
+
 ## Usage
 
 Best to alias it:
