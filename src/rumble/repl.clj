@@ -1,8 +1,8 @@
 (ns ^{:clojure.tools.namespace.repl/load false} rumble.repl
   (:refer-clojure :exclude [find-ns])
   (:require
-   [clojure.repl]
     [clojure.pprint]
+    [clojure.repl]
     [clojure.string :as str]
     [clojure.tools.namespace.find :as ns.find]
     [clojure.tools.namespace.repl :as ns.repl]
@@ -29,14 +29,13 @@
        (mapv (fn [[_k v]]
                (printf ";; %s - %s %s\n" (.replaceAll (str v) "#'" "")
                        (:arglists (meta v))
-                       (:doc (meta v)))
-  )))
+                       (:doc (meta v))))))
   ::ok)
 
 
 (defn- init!
   "Initialize the helper namespace"
-   []
+  []
   (ns.repl/disable-reload! *ns*)
   (ns.repl/set-refresh-dirs "src" "test")
   (help))
@@ -144,11 +143,13 @@
      (f)
      (swap! system-status (fn [s] (assoc s an-ns false))))))
 
+
 (defn restart-system!
   "Restarts the system with an optiona reload"
   []
   (when (stop-system!)
     (start-system!)))
+
 
 (defn sys
   "Pull out the system for passing around"
@@ -164,6 +165,7 @@
 
 
 (def ^:private kaocha-conf  {:config (System/getenv "KAOCHA_CONFIG")})
+
 
 (defn t
   "Run tests via kaocha - either all or a list of vars. WILL NOT REFRESH"
@@ -199,6 +201,7 @@
 (def ^:private tap-log (atom []))
 (def ^:private tap-ref (atom nil))
 
+
 (defn tap-log-init!
   "Initialize a tap> listener and store the ref to it"
   []
@@ -211,10 +214,12 @@
   []
   @tap-log)
 
+
 (defn tap-log-reset!
   "Clear the log"
   []
   (reset! tap-log []))
+
 
 (defn tap-log-stop!
   "Clear tap log and remove the listener"
@@ -222,7 +227,6 @@
   (remove-tap @tap-ref)
   (tap-log-reset!)
   (reset! tap-ref nil))
-
 
 
 (init!)
