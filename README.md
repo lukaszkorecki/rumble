@@ -2,6 +2,14 @@
 
 A set of helpers and tools for a smoother development REPL workflow.
 
+<img alt="Rubmle" height="300" align="right" src="https://w7.pngwing.com/pngs/998/690/png-transparent-rumble-transformers-the-game-shockwave-soundwave-transformers-fictional-character-transformers-the-movie-transformers-the-game.png" />
+
+## Installation
+
+[![Clojars Project](https://img.shields.io/clojars/v/org.clojars.lukaszkorecki/rumble.svg)](https://clojars.org/org.clojars.lukaszkorecki/rumble)
+
+Add to your `.lein/profiles.clj` or whatever `tools.deps` uses. Once you connect to the nREPL server see [usage](#usage):
+
 ## Usage
 
 Best to alias it:
