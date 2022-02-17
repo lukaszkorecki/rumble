@@ -172,10 +172,7 @@
   ([]
    (kaocha.repl/run :unit kaocha-conf))
   ([ns-list]
-   (apply kaocha.repl/run (conj (if (coll? ns-list)
-                                  ns-list
-                                  [ns-list])
-                                kaocha-conf))))
+   (apply kaocha.repl/run (flatten [ns-list [kaocha-conf]]))))
 
 
 (defn t!
@@ -185,7 +182,7 @@
    (kaocha.repl/run :unit kaocha-conf))
   ([& ns-list]
    (refresh)
-   (apply kaocha.repl/run (conj ns-list kaocha-conf))))
+   (apply kaocha.repl/run (flatten [ns-list [kaocha-conf]]))))
 
 
 (defn clear-aliases
