@@ -13,7 +13,7 @@ Add to your `.lein/profiles.clj` or whatever `tools.deps` uses. Once you connect
 You can auto load all of the repl helpers by adding *injections* to your `profile.clj`:
 
 ```
-:injections [ (require '[rumble.repl :as rr])]
+:injections [ (require 'r)]
 ```
 
 
@@ -22,10 +22,16 @@ You can auto load all of the repl helpers by adding *injections* to your `profil
 Best to alias it in some way:
 
 ```clojure
-(require '[rumble.repl :as rr])
+(require '[rumble.repl :as r])
 ```
 
-From there you can run `(rr/help)` and get all of the info:
+or use the `'r` namespace:
+
+```
+(require 'r)
+```
+
+From there you can run `(r/help)` and get all of the info:
 
 ```
 ;; in ns rumble.repl
@@ -74,8 +80,8 @@ From there, you have a lot sorts of tools to pull out components out of the runn
 
 Depends on Kaocha. Usage is as simple as:
 
-- `(rr/t!)` to run all tests
-- `(rr/t! (rr/find-test-ns #.*bananas.*"))` to run only a matching subset
+- `(r/t!)` to run all tests
+- `(r/t! (r/find-test-ns #.*bananas.*"))` to run only a matching subset
 
 Tests will not refresh changed namespaces if the dev system is running!
 If you have a custom config for Kaocha, set `KAOCHA_CONFIG` environment variable to point to it.
