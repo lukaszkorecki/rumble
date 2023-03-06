@@ -1,37 +1,34 @@
 (ns ^{:clojure.tools.namespace.repl/load false} rumble.repl
   (:refer-clojure :exclude [find-ns])
   (:require
-    [clojure.pprint]
-    [clojure.repl]
-    [clojure.string :as str]
-    [clojure.tools.namespace.find :as ns.find]
-    [clojure.tools.namespace.repl :as ns.repl]
-    [kaocha.repl])
+   [clojure.pprint]
+   [clojure.repl]
+   [clojure.string :as str]
+   [clojure.tools.namespace.find :as ns.find]
+   [clojure.tools.namespace.repl :as ns.repl]
+   [kaocha.repl])
   (:import
-    (java.io
-      File)))
-
+   (java.io
+    File)))
 
 (ns.repl/disable-reload! *ns*)
 
-
+;; debugging and stuff
 (defn pp
   "Alias for pprint, but returns passed in data"
   [thing]
   (clojure.pprint/pprint thing)
   thing)
 
-
 (defn help [& _n]
   (println (str ";; in ns " 'rumble.repl))
-  (->> (ns-publics  'rumble.repl)
+  (->> (ns-publics 'rumble.repl)
        (sort-by (fn [[_ v]] (str v)))
        (mapv (fn [[_k v]]
                (printf ";; %s - %s %s\n" (.replaceAll (str v) "#'" "")
                        (:arglists (meta v))
                        (:doc (meta v))))))
   ::ok)
-
 
 (defn- init!
   "Initialize the helper namespace"
@@ -40,14 +37,13 @@
   (ns.repl/set-refresh-dirs "src" "test")
   (help))
 
-
+;; finding things in a Clj project
 (defn list-ns
   "Return list of symbols of namespaces found in src dir. Default: ./src"
   ([root]
    (ns.find/find-namespaces-in-dir (File. root)))
   ([]
    (list-ns "./src/")))
-
 
 (defn find-ns
   "Find namespace vars by a regex"
@@ -58,7 +54,6 @@
       (for [n nss]
         (printf ";; %s\n" n)))
     nss))
-
 
 (defn find-test-ns
   "Find test namespace vars by a regex"
@@ -74,9 +69,31 @@
         (printf ";; %s\n" n)))
     nss))
 
+(defn describe-ns
+  "Describes given namespace by listing PUBLIC symbols, optionally filters down via :s <search>
+  and can optionally add the doc string with :doc true"
+  [an-ns & {:keys [s doc]}]
+  (->> an-ns
+       (ns-publics)
+       (filter (fn [[sym _thing]]
+                 (if s
+                   (re-find (if (string? s)
+                              (re-pattern s)
+                              s)
+                            (str sym))
+                   true)))
+       (sort-by #(str (first %)))
+       (mapv (fn [[sym thing]]
+               (format "> %s [%s]\n%s"
+                       sym
+                       (str thing)
+                       (if doc
+                         (get (meta thing) :doc)
+                         ""))))
+       (clojure.string/join "\n")
+       (println)))
 
 (def ^:private system-status (atom {}))
-
 
 (defn safe-to-refresh?
   "Check if refresh is safe, by verifying that application system is not running"
@@ -84,14 +101,12 @@
   (or (empty? @system-status)
       (= #{false} (-> @system-status vals set))))
 
-
-(defn  refresh
+(defn refresh
   "Refresh changed namespaces, only if its safe"
   []
   (if (safe-to-refresh?)
     (ns.repl/refresh)
     ::system-running!))
-
 
 (defn refresh-all
   "Refresh everything, only if its safe"
@@ -100,6 +115,11 @@
     (ns.repl/refresh-all)
     ::system-running!))
 
+(defn system-ns []
+  (-> *ns*
+      str
+      (str/replace #"\..+" ".user")
+      symbol))
 
 (defn start-system!
   "Given a namespace, usually some-service, do the following:
@@ -112,10 +132,7 @@
   Example: (rumble.repl/start-system! 'foo.user)"
   ([]
    ;; automagically guess the <app>.user namespace
-   (let [an-ns (-> *ns*
-                   str
-                   (str/replace #"\..+" ".user")
-                   symbol)]
+   (let [an-ns (system-ns)]
      (require an-ns)
      (start-system! an-ns)))
   ([an-ns]
@@ -133,7 +150,6 @@
          (f)
          (swap! system-status (fn [s] (assoc s an-ns true))))))))
 
-
 (defn stop-system!
   "Given a namespace, usually some-service.user, stop the system. If not passed, stops currently running system"
   ([]
@@ -143,19 +159,17 @@
      (f)
      (swap! system-status (fn [s] (assoc s an-ns false))))))
 
-
 (defn restart-system!
   "Restarts the system with an optiona reload"
   []
-  (when (stop-system!)
+  (when (or (empty? @system-status)
+            (stop-system!))
     (start-system!)))
-
 
 (defn sys
   "Pull out the system for passing around"
   []
   (var-get (ns-resolve (first (keys @system-status)) 'SYS)))
-
 
 (defn c
   "Pul out a compont from a running system, pass keyword for the component name"
@@ -163,9 +177,9 @@
   (let [sys (sys)]
     (get sys component-name)))
 
+;;; Test helpers
 
-(def ^:private kaocha-conf  {:config (System/getenv "KAOCHA_CONFIG")})
-
+(def ^:private kaocha-conf {:config (System/getenv "KAOCHA_CONFIG")})
 
 (defn t
   "Run tests via kaocha - either all or a list of vars. WILL NOT REFRESH"
@@ -174,16 +188,14 @@
   ([ns-list]
    (apply kaocha.repl/run (flatten [ns-list [kaocha-conf]]))))
 
-
 (defn t!
   "Run tests via kaocha, but refresh first - runs all tests or a list (or one) of ns vars"
   ([]
-   (refresh)
+   (println (refresh))
    (kaocha.repl/run :unit kaocha-conf))
   ([& ns-list]
-   (refresh)
+   (println (refresh))
    (apply kaocha.repl/run (flatten [ns-list [kaocha-conf]]))))
-
 
 (defn clear-aliases
   "Reset aliases for given ns or current if no args given"
@@ -192,12 +204,10 @@
   ([an-ns]
    (mapv #(ns-unalias an-ns %) (keys (ns-aliases an-ns)))))
 
-
 ;; Tap helpers
 
 (def ^:private tap-log (atom []))
 (def ^:private tap-ref (atom nil))
-
 
 (defn tap-log-init!
   "Initialize a tap> listener and store the ref to it"
@@ -205,18 +215,15 @@
   (reset! tap-ref (add-tap (fn [input]
                              (swap! tap-log conj input)))))
 
-
 (defn tap-log-get
   "Return tap logged data"
   []
   @tap-log)
 
-
 (defn tap-log-reset!
   "Clear the log"
   []
   (reset! tap-log []))
-
 
 (defn tap-log-stop!
   "Clear tap log and remove the listener"
@@ -224,6 +231,5 @@
   (remove-tap @tap-ref)
   (tap-log-reset!)
   (reset! tap-ref nil))
-
 
 (init!)
