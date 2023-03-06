@@ -20,23 +20,6 @@
   (clojure.pprint/pprint thing)
   thing)
 
-(defn help [& _n]
-  (println (str ";; in ns " 'rumble.repl))
-  (->> (ns-publics 'rumble.repl)
-       (sort-by (fn [[_ v]] (str v)))
-       (mapv (fn [[_k v]]
-               (printf ";; %s - %s %s\n" (.replaceAll (str v) "#'" "")
-                       (:arglists (meta v))
-                       (:doc (meta v))))))
-  ::ok)
-
-(defn- init!
-  "Initialize the helper namespace"
-  []
-  (ns.repl/disable-reload! *ns*)
-  (ns.repl/set-refresh-dirs "src" "test")
-  (help))
-
 ;; finding things in a Clj project
 (defn list-ns
   "Return list of symbols of namespaces found in src dir. Default: ./src"
@@ -84,11 +67,12 @@
                    true)))
        (sort-by #(str (first %)))
        (mapv (fn [[sym thing]]
-               (format "> %s [%s]\n%s"
+               (format "> %s > %s > %s%s"
                        sym
                        (str thing)
+                       (get (meta thing) :arglists)
                        (if doc
-                         (get (meta thing) :doc)
+                         (str "\n" (get (meta thing) :doc) "\n")
                          ""))))
        (clojure.string/join "\n")
        (println)))
@@ -231,5 +215,14 @@
   (remove-tap @tap-ref)
   (tap-log-reset!)
   (reset! tap-ref nil))
+
+;;
+
+(defn- init!
+  "Initialize the helper namespace"
+  []
+  (ns.repl/disable-reload! *ns*)
+  (ns.repl/set-refresh-dirs "src" "test")
+  (describe-ns *ns* :doc true))
 
 (init!)
