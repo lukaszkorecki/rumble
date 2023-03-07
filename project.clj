@@ -11,4 +11,4 @@
                  [org.clojure/tools.namespace "1.3.0"]
                  [potemkin "0.4.5"]
                  [lambdaisland/kaocha "1.66.1034"]]
-  :repl-options {:init-ns rumble.repl})
+  :repl-options {:init-ns r})
