@@ -13,11 +13,13 @@
 
 (ns.repl/disable-reload! *ns*)
 
+(def ^{:doc "Pretty print given thing"}  ppn clojure.pprint/pprint)
+
 ;; debugging and stuff
 (defn pp
-  "Alias for pprint, but returns passed in data"
+  "Like ppn, but returns passed in data. Useful for debugging threaded calls"
   [thing]
-  (clojure.pprint/pprint thing)
+  (ppn thing)
   thing)
 
 ;; finding things in a Clj project
@@ -38,7 +40,7 @@
         (printf ";; %s\n" n)))
     nss))
 
-(defn find-test-ns
+(defn tests
   "Find test namespace vars by a regex"
   [pattern]
   (let [re (cond
@@ -52,10 +54,13 @@
         (printf ";; %s\n" n)))
     nss))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+(def find-test-ns tests)
+
 (defn describe-ns
   "Describes given namespace by listing PUBLIC symbols, optionally filters down via :s <search>
   and can optionally add the doc string with :doc true"
-  [an-ns & {:keys [s doc]}]
+  [an-ns & {:keys [s docs?]}]
   (->> an-ns
        (ns-publics)
        (filter (fn [[sym _thing]]
@@ -71,7 +76,7 @@
                        sym
                        (str thing)
                        (get (meta thing) :arglists)
-                       (if doc
+                       (if docs?
                          (str "\n" (get (meta thing) :doc) "\n")
                          ""))))
        (clojure.string/join "\n")
@@ -113,7 +118,7 @@
   - start  system, invoking somer-service.user/start
   Warning: best if the system is not running, or things will go south
 
-  Example: (rumble.repl/start-system! 'foo.user)"
+  Example: (r/start-system! 'foo.user)"
   ([]
    ;; automagically guess the <app>.user namespace
    (let [an-ns (system-ns)]
@@ -121,7 +126,7 @@
      (start-system! an-ns)))
   ([an-ns]
    (printf ";; Starting %s\n" an-ns)
-   (when (= "rumble.repl" (str an-ns))
+   (when (= "r" (str an-ns))
      (throw (ex-info "nope" {:ns (str an-ns)})))
    (if (get @system-status an-ns)
      (println ";; System possibly running" an-ns)
@@ -144,11 +149,11 @@
      (swap! system-status (fn [s] (assoc s an-ns false))))))
 
 (defn restart-system!
-  "Restarts the system with an optiona reload"
+  "Restarts the system with an optional reload. If the system is not running, it will start it"
   []
-  (when (or (empty? @system-status)
-            (stop-system!))
-    (start-system!)))
+  (when (first (keys @system-status))
+    (stop-system!))
+  (start-system!))
 
 (defn sys
   "Pull out the system for passing around"
@@ -158,7 +163,7 @@
 (defn c
   "Pul out a compont from a running system, pass keyword for the component name"
   [component-name]
-  (let [sys (sys)]
+  (when-let [sys (sys)]
     (get sys component-name)))
 
 ;;; Test helpers
@@ -204,7 +209,7 @@
   []
   @tap-log)
 
-(defn tap-log-reset!
+(defn tap-log-clear!
   "Clear the log"
   []
   (reset! tap-log []))
@@ -213,7 +218,7 @@
   "Clear tap log and remove the listener"
   []
   (remove-tap @tap-ref)
-  (tap-log-reset!)
+  (tap-log-clear!)
   (reset! tap-ref nil))
 
 ;;
@@ -226,6 +231,6 @@
   []
   (ns.repl/disable-reload! *ns*)
   (ns.repl/set-refresh-dirs "src" "test")
-  (describe-ns *ns* :doc true))
+  (describe-ns *ns* :docs? true))
 
 (init!)

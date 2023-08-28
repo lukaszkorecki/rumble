@@ -1,4 +1,4 @@
-(defproject org.clojars.lukaszkorecki/rumble "0.1.0-SNAPSHOT-6"
+(defproject org.clojars.lukaszkorecki/rumble "0.1.0-SNAPSHOT-7"
   :description "(n)REPL helpers and tools"
   :url "https://github.com/lukaszkorecki/rumble"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
@@ -8,7 +8,6 @@
                                    :password :env/clojars_password}}
 
   :dependencies [[org.clojure/clojure "1.11.1"]
-                 [org.clojure/tools.namespace "1.3.0"]
-                 [potemkin "0.4.5"]
-                 [lambdaisland/kaocha "1.66.1034"]]
+                 [org.clojure/tools.namespace "1.4.4"]
+                 [lambdaisland/kaocha "1.85.1342"]]
   :repl-options {:init-ns r})
