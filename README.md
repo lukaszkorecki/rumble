@@ -22,47 +22,11 @@ You can auto load all of the repl helpers by adding *injections* to your `profil
 Best to alias it in some way:
 
 ```clojure
-(require '[rumble.repl :as r])
-```
-
-or use the `'r` namespace:
-
-```
 (require 'r)
 ```
 
-From there you can run `(r/help)` and get all of the info:
 
-```
-;; in ns rumble.repl
-;; rumble.repl/c - ([component-name]) Pul out a compont from a running system, pass keyword for the component name
-;; rumble.repl/clear-aliases - ([] [an-ns]) Reset aliases for given ns or current if no args given
-;; rumble.repl/find-ns - ([re]) Find namespace vars by a regex
-;; rumble.repl/find-test-ns - ([pattern]) Find test namespace vars by a regex
-;; rumble.repl/help - ([& _n]) null
-;; rumble.repl/list-ns - ([root] []) Return list of symbols of namespaces found in src dir. Default: ./src
-;; rumble.repl/pp - ([thing]) Alias for pprint, but returns passed in data
-;; rumble.repl/refresh - ([]) Refresh changed namespaces, only if its safe
-;; rumble.repl/refresh-all - ([]) Refresh everything, only if its safe
-;; rumble.repl/restart-system! - ([]) Restarts the system with an optiona reload
-;; rumble.repl/safe-to-refresh? - ([]) Check if refresh is safe, by verifying that application system is not running
-;; rumble.repl/start-system! - ([] [an-ns]) Given a namespace, usually some-service, do the following:
-  - find some-service.user namespace (by convention)
-  - refresh
-  - require the user ns e.g. some-service.user
-  - start  system, invoking somer-service.user/start
-  Warning: best if the system is not running, or things will go south
-
-  Example: (rumble.repl/start-system! 'foo.user)
-;; rumble.repl/stop-system! - ([] [an-ns]) Given a namespace, usually some-service.user, stop the system. If not passed, stops currently running system
-;; rumble.repl/sys - ([]) Pull out the system for passing around
-;; rumble.repl/t - ([] [ns-list]) Run tests via kaocha - either all or a list of vars. WILL NOT REFRESH
-;; rumble.repl/t! - ([] [& ns-list]) Run tests via kaocha, but refresh first - runs all tests or a list (or one) of ns vars
-;; rumble.repl/tap-log-get - ([]) Return tap logged data
-;; rumble.repl/tap-log-init! - ([]) Initialize a tap> listener and store the ref to it
-;; rumble.repl/tap-log-reset! - ([]) Clear the log
-;; rumble.repl/tap-log-stop! - ([]) Clear tap log and remove the listener
-```
+From there you can run `(r/help)` and get all of the info
 
 
 ## Managing application lifecycle during development
@@ -92,7 +56,7 @@ A couple of helpers to get data out of taps defined in the code.
 
 ## License
 
-Copyright © 2019 - 2022  Łukasz Korecki
+Copyright © 2019 - 2023  Łukasz Korecki
 
 This program and the accompanying materials are made available under the
 terms of the Eclipse Public License 2.0 which is available at
