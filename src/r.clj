@@ -10,7 +10,6 @@
    [clojure.tools.namespace.repl :as ns.repl]
    [kaocha.repl]
    [portal.api]
-   [playback.core]
    [portal.colors])
   (:import
    (java.io
