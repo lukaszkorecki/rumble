@@ -1,19 +1,24 @@
 (ns ^{:clojure.tools.namespace.repl/load false} r
   (:refer-clojure :exclude [find-ns])
   (:require
+   [clojure.java.browse]
+   [clojure.java.io :as io]
    [clojure.pprint]
    [clojure.repl]
    [clojure.string :as str]
    [clojure.tools.namespace.find :as ns.find]
    [clojure.tools.namespace.repl :as ns.repl]
-   [kaocha.repl])
+   [kaocha.repl]
+   [portal.api]
+   [playback.preload]
+   [portal.colors])
   (:import
    (java.io
     File)))
 
 (ns.repl/disable-reload! *ns*)
 
-(def ^{:doc "Pretty print given thing"}  ppn clojure.pprint/pprint)
+(def ^{:doc "Pretty print given thing"} ppn clojure.pprint/pprint)
 
 ;; debugging and stuff
 (defn pp
@@ -198,6 +203,12 @@
 (def ^:private tap-log (atom []))
 (def ^:private tap-ref (atom nil))
 
+(defn t>
+  "Like tap> but returns input"
+  [input]
+  (tap> input)
+  input)
+
 (defn tap-log-init!
   "Initialize a tap> listener and store the ref to it"
   []
@@ -220,6 +231,41 @@
   (remove-tap @tap-ref)
   (tap-log-clear!)
   (reset! tap-ref nil))
+
+(def portal-tap (atom nil))
+
+(defn portal-start!
+  ([]
+   (portal-start! {:force? false}))
+  ([{:keys [force?]}]
+   (when force?
+     (io/delete-file ".portal-url"))
+   (let [url (if (.exists (io/file ".portal-url"))
+               (do
+                 (println "Found .portal-url, using that")
+                 (slurp ".portal-url"))
+               (do
+                 (println "No .portal-url found, starting portal")
+              ;; Tweak Portal fonts because they're too big
+                 (let [tweaked-themes (assoc portal.colors/themes
+                                             :portal.colors/nord-light-tweaked
+                                             (merge (:portal.colors/nord-light portal.colors/themes)
+                                                    {:font-size 8}))]
+                   (with-redefs [portal.colors/themes tweaked-themes]
+                     (portal.api/url (portal.api/open {:window-title "monroe portal"
+                                                       :theme :portal.colors/nord-light-tweaked
+                                                       :launcher false}))))))]
+     (spit ".portal-url" url)
+     (reset! portal-tap (add-tap #'portal.api/submit))
+     (clojure.java.browse/browse-url url))))
+
+(defn portal-clear! []
+  (portal.api/clear))
+
+(defn portal-stop! []
+  (swap! portal-tap remove-tap)
+  (io/delete-file ".portal-url")
+  (portal.api/close))
 
 ;;
 
