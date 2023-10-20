@@ -235,8 +235,8 @@
 
 (defn portal-start!
   ([]
-   (portal-start! {:force? false}))
-  ([{:keys [force?]}]
+   (portal-start! {:force? false :browse? true}))
+  ([{:keys [force? browse?]}]
    (when force?
      (io/delete-file ".portal-url"))
    (let [url (if (.exists (io/file ".portal-url"))
@@ -245,18 +245,14 @@
                  (slurp ".portal-url"))
                (do
                  (println "No .portal-url found, starting portal")
-              ;; Tweak Portal fonts because they're too big
-                 (let [tweaked-themes (assoc portal.colors/themes
-                                             :portal.colors/nord-light-tweaked
-                                             (merge (:portal.colors/nord-light portal.colors/themes)
-                                                    {:font-size 8}))]
-                   (with-redefs [portal.colors/themes tweaked-themes]
-                     (portal.api/url (portal.api/open {:window-title "monroe portal"
-                                                       :theme :portal.colors/nord-light-tweaked
-                                                       :launcher false}))))))]
+                 (portal.api/url (portal.api/open {:window-title "monroe portal"
+                                                   :theme ::missing ;; FIXME: wait for custom theme support in Portal
+                                                   :launcher false}))))]
      (spit ".portal-url" url)
      (reset! portal-tap (add-tap #'portal.api/submit))
-     (clojure.java.browse/browse-url url))))
+     (when browse?
+       (clojure.java.browse/browse-url url))
+     url)))
 
 (defn portal-clear! []
   (portal.api/clear))
