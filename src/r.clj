@@ -125,32 +125,32 @@
   Example: (r/start-system! 'foo.user)"
   ([]
    ;; automagically guess the <app>.user namespace
-   (let [an-ns (system-ns)]
-     (require an-ns)
-     (start-system! an-ns)))
-  ([an-ns]
-   (printf ";; Starting %s\n" an-ns)
-   (when (= "r" (str an-ns))
-     (throw (ex-info "nope" {:ns (str an-ns)})))
-   (if (get @system-status an-ns)
-     (println ";; System possibly running" an-ns)
+   (let [dev-sys-ns (system-ns)]
+     (require dev-sys-ns)
+     (start-system! dev-sys-ns)))
+  ([dev-sys-ns]
+   (printf ";; Starting %s\n" dev-sys-ns)
+   (when (= "r" (str dev-sys-ns))
+     (throw (ex-info "nope" {:ns (str dev-sys-ns)})))
+   (if (get @system-status dev-sys-ns)
+     (println ";; System possibly running" dev-sys-ns)
      (do
-       (println ";; Refreshing and reloading " an-ns)
-       (remove-ns an-ns)
+       (println ";; Refreshing and reloading " dev-sys-ns)
+       (remove-ns dev-sys-ns)
        (refresh)
-       (require [an-ns] :reload)
-       (when-let [f (ns-resolve an-ns 'start)]
+       (require [dev-sys-ns] :reload)
+       (when-let [f (ns-resolve dev-sys-ns 'start)]
          (f)
-         (swap! system-status (fn [s] (assoc s an-ns true))))))))
+         (swap! system-status (fn [s] (assoc s dev-sys-ns true))))))))
 
 (defn stop-system!
   "Given a namespace, usually some-service.user, stop the system. If not passed, stops currently running system"
   ([]
    (stop-system! (first (keys @system-status))))
-  ([an-ns]
-   (let [f (ns-resolve an-ns 'stop)]
+  ([dev-sys-ns]
+   (let [f (ns-resolve dev-sys-ns 'stop)]
      (f)
-     (swap! system-status (fn [s] (assoc s an-ns false))))))
+     (swap! system-status (fn [s] (assoc s dev-sys-ns false))))))
 
 (defn restart-system!
   "Restarts the system with an optional reload. If the system is not running, it will start it"
@@ -160,38 +160,38 @@
   (start-system!))
 
 (defn sys
-  "Pull out the system for passing around"
+  "Get the running system map"
   []
   (var-get (ns-resolve (first (keys @system-status)) 'SYS)))
 
 (defn c
-  "Pul out a compont from a running system, pass keyword for the component name"
-  [component-name]
+  "Get a component from the running system, e.g (r/c :postgres)"
+  [component-key]
   (when-let [sys (sys)]
-    (get sys component-name)))
+    (get sys component-key)))
 
 ;;; Test helpers
 
-(def ^:private kaocha-conf {:config (System/getenv "KAOCHA_CONFIG")})
+(def ^:private kaocha-dummy-conf {:config nil})
 
 (defn t
-  "Run tests via kaocha - either all or a list of vars. WILL NOT REFRESH"
+  "Run tests via kaocha - either all or a list of vars. WILL NOT REFRESH ANY CODE"
   ([]
-   (kaocha.repl/run :unit kaocha-conf))
+   (kaocha.repl/run :unit kaocha-dummy-conf))
   ([ns-list]
-   (apply kaocha.repl/run (flatten [ns-list [kaocha-conf]]))))
+   (apply kaocha.repl/run (flatten [ns-list [kaocha-dummy-conf]]))))
 
 (defn t!
   "Run tests via kaocha, but refresh first - runs all tests or a list (or one) of ns vars"
   ([]
    (println (refresh))
-   (kaocha.repl/run :unit kaocha-conf))
+   (kaocha.repl/run :unit kaocha-dummy-conf))
   ([& ns-list]
    (println (refresh))
-   (apply kaocha.repl/run (flatten [ns-list [kaocha-conf]]))))
+   (apply kaocha.repl/run (flatten [ns-list [kaocha-dummy-conf]]))))
 
 (defn clear-aliases
-  "Reset aliases for given ns or current if no args given"
+  "Reset aliases for given ns or current one if no args given"
   ([]
    (clear-aliases *ns*))
   ([an-ns]
@@ -239,16 +239,9 @@
   ([{:keys [force? browse?]}]
    (when force?
      (io/delete-file ".portal-url"))
-   (let [url (if (.exists (io/file ".portal-url"))
-               (do
-                 (println "Found .portal-url, using that")
-                 (slurp ".portal-url"))
-               (do
-                 (println "No .portal-url found, starting portal")
-                 (portal.api/url (portal.api/open {:window-title "monroe portal"
-                                                   :theme ::missing ;; FIXME: wait for custom theme support in Portal
-                                                   :launcher false}))))]
-     (spit ".portal-url" url)
+   (let [url (portal.api/url (portal.api/open {:window-title "monroe portal"
+                                               :theme ::missing ;; FIXME: wait for custom theme support in Portal
+                                               :launcher false}))]
      (reset! portal-tap (add-tap #'portal.api/submit))
      (when browse?
        (clojure.java.browse/browse-url url))
@@ -259,19 +252,18 @@
 
 (defn portal-stop! []
   (swap! portal-tap remove-tap)
-  (io/delete-file ".portal-url")
   (portal.api/close))
 
 ;;
 
 (defn help []
-  (describe-ns *ns* :doc true))
+  (describe-ns 'r :doc true))
 
 (defn- init!
   "Initialize the helper namespace"
   []
   (ns.repl/disable-reload! *ns*)
   (ns.repl/set-refresh-dirs "src" "test")
-  (describe-ns *ns* :docs? true))
+  (println "Rumble loaded, use (r/help) to get started"))
 
 (init!)
