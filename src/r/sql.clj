@@ -45,7 +45,7 @@
                      (str
                       (subs (first sql-vec) 0 (dec position))
                       "/* < FAILED HERE > */"
-                      (subs (first sql-vec) position))
+                      (subs (first sql-vec) (dec position)))
                      (first sql-vec))
         sql-vec (concat [sql-string] (rest sql-vec))]
     (tap> {:error e
@@ -61,11 +61,13 @@
     (let [result (execute-fn conn sql-vec)]
       (debug-query->portal {:sql-vec sql-vec :result result})
       result)
-    (catch Exception e
+    (catch Throwable e
       (query-execution-error->portal e sql-vec)
       (throw e))))
 
 (comment
-  (->> {:select [:*] :from :table}
-       (sql/format)
-       (r.sql/with-debug next.jdbc/execute! db)))
+  (require '[honey.sql :as sql] '[next.jdbc :as jdbc])
+  (defn query [db]
+    (->> {:select [:*] :from :table}
+         (sql/format)
+         (r.sql/with-debug jdbc/execute! db))))
