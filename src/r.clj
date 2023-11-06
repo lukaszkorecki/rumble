@@ -235,13 +235,13 @@
 
 (defn portal-start!
   ([]
-   (portal-start! {:force? false :browse? true}))
-  ([{:keys [force? browse?]}]
-   (when force?
-     (io/delete-file ".portal-url"))
-   (let [url (portal.api/url (portal.api/open {:window-title "monroe portal"
-                                               :theme ::missing ;; FIXME: wait for custom theme support in Portal
-                                               :launcher false}))]
+   (portal-start! {:browse? true}))
+  ([{:keys [browse?]}]
+   (let [url (-> {:window-title "monroe portal"
+                  :theme ::missing ;; FIXME: wait for custom theme support in Portal
+                  :launcher false}
+                 portal.api/open
+                 portal.api/url)]
      (reset! portal-tap (add-tap #'portal.api/submit))
      (when browse?
        (clojure.java.browse/browse-url url))
