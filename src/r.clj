@@ -2,7 +2,6 @@
   (:refer-clojure :exclude [find-ns])
   (:require
    [clojure.java.browse]
-   [clojure.java.io :as io]
    [clojure.pprint]
    [clojure.repl]
    [clojure.string :as str]
@@ -15,6 +14,8 @@
    (java.io
     File)))
 
+(set! *warn-on-reflection* true)
+
 (ns.repl/disable-reload! *ns*)
 
 (def ^{:doc "Pretty print given thing"} ppn clojure.pprint/pprint)
@@ -26,11 +27,23 @@
   (ppn thing)
   thing)
 
+(defn ->pp
+  "Pretty print in -> threading macro. Optionally tag the thing with :tag to pp a hash map of {tag thing}"
+  [thing tag]
+  (pp {tag thing})
+  thing)
+
+(defn ->>pp
+  "Pretty print in ->> threading macro. Optionally tag the thing with :tag to pp a hash map of {tag thing}"
+  [tag thing]
+  (pp {tag thing})
+  thing)
+
 ;; finding things in a Clj project
 (defn list-ns
   "Return list of symbols of namespaces found in src dir. Default: ./src"
   ([root]
-   (ns.find/find-namespaces-in-dir (File. root)))
+   (ns.find/find-namespaces-in-dir (File. ^String root)))
   ([]
    (list-ns "./src/")))
 
@@ -39,7 +52,7 @@
   [re]
   (let [nss (vec (filter #(re-find re (str %)) (list-ns)))]
     (printf ";; found %s ns\n" (count nss))
-    (when (<= (count nss) 10)
+    (when (<= (count nss) 20)
       (for [n nss]
         (printf ";; %s\n" n)))
     nss))
@@ -202,11 +215,21 @@
 (def ^:private tap-log (atom []))
 (def ^:private tap-ref (atom nil))
 
-(defn t>
-  "Like tap> but returns input"
-  [input]
-  (tap> input)
-  input)
+(defn ->tap>
+  "Like tap> but returns input, and is designed for threading macros. Optionally tag the thing with :tag to tap a hash map of {tag thing}"
+  ([thing]
+   (->tap> thing :->tap>))
+  ([thing tag]
+   (tap> {tag thing})
+   thing))
+
+(defn ->>tap>
+  "Like tap> but returns input, and is designed for threading macros. Optionally tag the thing with :tag to tap a hash map of {tag thing}"
+  ([thing]
+   (->>tap> thing :->>tap>))
+  ([tag thing]
+   (tap> {tag thing})
+   thing))
 
 (defn tap-log-init!
   "Initialize a tap> listener and store the ref to it"
@@ -232,16 +255,17 @@
   (reset! tap-ref nil))
 
 (def portal-tap (atom nil))
+(def portal-instance (atom nil))
 
 (defn portal-start!
   ([]
    (portal-start! {:browse? true}))
   ([{:keys [browse?]}]
-   (let [url (-> {:window-title "monroe portal"
-                  :theme ::missing ;; FIXME: wait for custom theme support in Portal
-                  :launcher false}
-                 portal.api/open
-                 portal.api/url)]
+   (let [instance (portal.api/open {:window-title "monroe portal"
+                                    :theme ::missing
+                                    :launcher false})
+         url (portal.api/url instance)]
+     (reset! portal-instance instance)
      (reset! portal-tap (add-tap #'portal.api/submit))
      (when browse?
        (clojure.java.browse/browse-url url))
@@ -252,10 +276,12 @@
 
 (defn portal-stop! []
   (swap! portal-tap remove-tap)
-  (portal.api/close))
+  (portal.api/close @portal-instance))
+
+(defn portal-get []
+  (portal.api/selected @portal-instance))
 
 ;;
-
 (defn help []
   (describe-ns 'r :doc true))
 
