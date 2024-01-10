@@ -278,8 +278,8 @@
   (swap! portal-tap remove-tap)
   (portal.api/close @portal-instance))
 
-(defn portal-get []
-  (portal.api/selected @portal-instance))
+;; (defn portal-get []
+;;   (portal.api/selected @portal-instance))
 
 ;;
 (defn help []
