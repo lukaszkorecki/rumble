@@ -22,26 +22,26 @@
 
 ;; debugging and stuff
 (defn pp
-  "Like ppn, but returns passed in data. Useful for debugging threaded calls"
+  "Like `ppn`, but returns passed in data. Useful for debugging threaded calls"
   [thing]
   (ppn thing)
   thing)
 
 (defn ->pp
-  "Pretty print in -> threading macro. Optionally tag the thing with :tag to pp a hash map of {tag thing}"
+  "Pretty print in `->` threading macro. Optionally tag the thing with `:tag` to pp a hash map of `{tag thing}`"
   [thing tag]
   (pp {tag thing})
   thing)
 
 (defn ->>pp
-  "Pretty print in ->> threading macro. Optionally tag the thing with :tag to pp a hash map of {tag thing}"
+  "Pretty print in `->>` threading macro. Optionally tag the thing with `:tag` to pp a hash map of `{tag thing}`"
   [tag thing]
   (pp {tag thing})
   thing)
 
 ;; finding things in a Clj project
 (defn list-ns
-  "Return list of symbols of namespaces found in src dir. Default: ./src"
+  "Return list of symbols of namespaces found in a dir. Default: `./src`"
   ([root]
    (ns.find/find-namespaces-in-dir (File. ^String root)))
   ([]
@@ -71,12 +71,12 @@
         (printf ";; %s\n" n)))
     nss))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-(def find-test-ns tests)
+(def ^{:doc "alias for `r/tests`"} find-tests tests)
+(def ^{:doc "alias for `r/tests`"} find-test-ns tests)
 
 (defn describe-ns
-  "Describes given namespace by listing PUBLIC symbols, optionally filters down via :s <search>
-  and can optionally add the doc string with :doc true"
+  "Describes given namespace by listing **public** symbols, optionally filters down via `:s <search>`
+  and can optionally add the doc string with `:docs?` true"
   [an-ns & {:keys [s docs?]}]
   (->> an-ns
        (ns-publics)
@@ -121,30 +121,44 @@
     (ns.repl/refresh-all)
     ::system-running!))
 
-(defn system-ns []
+(defn system-ns
+  "Default finder for location of the system namespace.
+  It extracts the first segment of the namspace tree and appends `.user` to it.
+  "
+  []
   (-> *ns*
       str
       (str/replace #"\..+" ".user")
       symbol))
 
-(defn start-system!
+(defn ^:deprecated start-system!
   "Given a namespace, usually some-service, do the following:
   - find some-service.user namespace (by convention)
   - refresh
   - require the user ns e.g. some-service.user
   - start  system, invoking somer-service.user/start
-  Warning: best if the system is not running, or things will go south
 
-  Example: (r/start-system! 'foo.user)"
+  The namespace has to contain the following:
+
+  - `start` function that starts the system
+  - `stop` function that stops the system
+  - `SYS` - var that contains the system map, it can be an atom - whatever can keep a state
+
+  > [!WARNING]
+  > best if the system is not running, or things will go south very quickly
+
+  Example: `(r/start-system! 'foo.user)`"
   ([]
    ;; automagically guess the <app>.user namespace
    (let [dev-sys-ns (system-ns)]
      (require dev-sys-ns)
      (start-system! dev-sys-ns)))
   ([dev-sys-ns]
-   (printf ";; Starting %s\n" dev-sys-ns)
    (when (= "r" (str dev-sys-ns))
-     (throw (ex-info "nope" {:ns (str dev-sys-ns)})))
+     (throw (ex-info "not allowed" {:ns (str dev-sys-ns)})))
+
+   (printf ";; Starting %s\n" dev-sys-ns)
+
    (if (get @system-status dev-sys-ns)
      (println ";; System possibly running" dev-sys-ns)
      (do
@@ -156,7 +170,7 @@
          (f)
          (swap! system-status (fn [s] (assoc s dev-sys-ns true))))))))
 
-(defn stop-system!
+(defn ^:deprecated stop-system!
   "Given a namespace, usually some-service.user, stop the system. If not passed, stops currently running system"
   ([]
    (stop-system! (first (keys @system-status))))
@@ -165,7 +179,7 @@
      (f)
      (swap! system-status (fn [s] (assoc s dev-sys-ns false))))))
 
-(defn restart-system!
+(defn ^:deprecated restart-system!
   "Restarts the system with an optional reload. If the system is not running, it will start it"
   []
   (when (first (keys @system-status))
@@ -185,23 +199,27 @@
 
 ;;; Test helpers
 
-(def ^:private kaocha-dummy-conf {:config nil})
-
 (defn t
-  "Run tests via kaocha - either all or a list of vars. WILL NOT REFRESH ANY CODE"
+  "Run tests via kaocha - either all or a list of vars.
+  > [!NOTE]
+  > It will not refresh any code - use `t!` for that"
   ([]
-   (kaocha.repl/run :unit kaocha-dummy-conf))
+   (kaocha.repl/run-all))
   ([ns-list]
-   (apply kaocha.repl/run (flatten [ns-list [kaocha-dummy-conf]]))))
+   (apply kaocha.repl/run ns-list)))
 
 (defn t!
-  "Run tests via kaocha, but refresh first - runs all tests or a list (or one) of ns vars"
+  "Run tests via kaocha, but refresh first - runs all tests or a list (or one) of ns vars.
+
+  > ![NOTE]
+  > Refresh happens only if it's safe to do so e.g. dev system is not running
+  "
   ([]
    (println (refresh))
-   (kaocha.repl/run :unit kaocha-dummy-conf))
+   (kaocha.repl/run-all))
   ([& ns-list]
    (println (refresh))
-   (apply kaocha.repl/run (flatten [ns-list [kaocha-dummy-conf]]))))
+   (apply kaocha.repl/run ns-list)))
 
 (defn clear-aliases
   "Reset aliases for given ns or current one if no args given"
@@ -216,7 +234,7 @@
 (def ^:private tap-ref (atom nil))
 
 (defn ->tap>
-  "Like tap> but returns input, and is designed for threading macros. Optionally tag the thing with :tag to tap a hash map of {tag thing}"
+  "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
    (->tap> thing :->tap>))
   ([thing tag]
@@ -224,7 +242,7 @@
    thing))
 
 (defn ->>tap>
-  "Like tap> but returns input, and is designed for threading macros. Optionally tag the thing with :tag to tap a hash map of {tag thing}"
+  "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
    (->>tap> thing :->>tap>))
   ([tag thing]
@@ -232,7 +250,7 @@
    thing))
 
 (defn tap-log-init!
-  "Initialize a tap> listener and store the ref to it"
+  "Initialize a `tap>` listener and store the ref to it"
   []
   (reset! tap-ref (add-tap (fn [input]
                              (swap! tap-log conj input)))))
@@ -258,6 +276,7 @@
 (def portal-instance (atom nil))
 
 (defn portal-start!
+  "Start portal instance and optionally open it in a browser"
   ([]
    (portal-start! {:browse? true}))
   ([{:keys [browse?]}]
@@ -271,22 +290,27 @@
        (clojure.java.browse/browse-url url))
      url)))
 
-(defn portal-clear! []
+(defn portal-clear!
+  "Clear current portal session view"
+  []
   (portal.api/clear))
 
-(defn portal-stop! []
+(defn portal-stop!
+  "Stop portal session"
+  []
   (swap! portal-tap remove-tap)
   (portal.api/close @portal-instance))
 
 ;; (defn portal-get []
 ;;   (portal.api/selected @portal-instance))
 
-;;
-(defn help []
+(defn help
+  "Get help about all `r` functionality"
+  []
   (describe-ns 'r :doc true))
 
 (defn- init!
-  "Initialize the helper namespace"
+  "Initialize `r`umble helpers"
   []
   (ns.repl/disable-reload! *ns*)
   (ns.repl/set-refresh-dirs "src" "test")
