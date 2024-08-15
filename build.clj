@@ -51,3 +51,12 @@
     (dd/deploy {:installer :local
                 :artifact (b/resolve-path jar-file)
                 :pom-file (b/pom-path (select-keys opts' [:lib :class-dir]))})))
+
+(defn publish
+  [{:keys [snapshot]}]
+  (let [{:keys [jar-file] :as opts} (jar-opts {:version (if snapshot
+                                                          (version-snapshot snapshot)
+                                                          version-stable)})]
+    (dd/deploy {:installer :remote
+                :artifact (b/resolve-path jar-file)
+                :pom-file (b/pom-path (select-keys opts [:lib :class-dir]))})))
