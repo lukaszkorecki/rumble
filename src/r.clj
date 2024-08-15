@@ -254,6 +254,8 @@
   []
   (reset! tap-ref (add-tap (fn [input]
                              (swap! tap-log conj input)))))
+;; muscle memory...
+(def init-tap-log! tap-log-init!)
 
 (defn tap-log-get
   "Return tap logged data"
@@ -274,6 +276,8 @@
 
 (def portal-tap (atom nil))
 (def portal-instance (atom nil))
+
+;;; Experimental stuff
 
 (defn portal-start!
   "Start portal instance and optionally open it in a browser"

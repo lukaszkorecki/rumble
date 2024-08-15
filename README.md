@@ -8,13 +8,20 @@ A set of helpers and tools for a smoother development REPL workflow.
 
 [![Clojars Project](https://img.shields.io/clojars/v/org.clojars.lukaszkorecki/rumble.svg)](https://clojars.org/org.clojars.lukaszkorecki/rumble)
 
-Add to your `.lein/profiles.clj` or whatever `tools.deps` uses. Once you connect to the nREPL server see [usage](#usage):
+### Lein
 
-You can auto load all of the repl helpers by adding *injections* to your `profile.clj`:
+Add it to `~/.lein/profiles.clj`:
 
+```clojure
+{
+ :user {:dependencies [[org.clojars.lukaszkorecki/rumble "RELEASE"]]}
+ :repl {:dependencies [[org.clojars.lukaszkorecki/rumble "RELEASE"]]}
+}
 ```
-:injections [ (require 'r)]
-```
+
+### `deps.edn`
+
+This is more flexible approach, as you'd set up a `:dev/rumble` alias and then include it in the REPL-launching command.
 
 
 ## Usage
@@ -22,6 +29,7 @@ You can auto load all of the repl helpers by adding *injections* to your `profil
 Best to alias it in some way:
 
 ```clojure
+(ns scratch) ;; or whatever
 (require 'r)
 ```
 
@@ -45,7 +53,7 @@ From there, you have a lot sorts of tools to pull out components out of the runn
 Depends on Kaocha. Usage is as simple as:
 
 - `(r/t!)` to run all tests
-- `(r/t! (r/find-test-ns #.*bananas.*"))` to run only a matching subset
+- `(r/t! (r/tests #.*bananas.*"))` to run only a matching subset
 
 Tests will not refresh changed namespaces if the dev system is running!
 If you have a custom config for Kaocha, set `KAOCHA_CONFIG` environment variable to point to it.
@@ -53,6 +61,7 @@ If you have a custom config for Kaocha, set `KAOCHA_CONFIG` environment variable
 ## Taps
 
 A couple of helpers to get data out of taps defined in the code.
+
 
 ## License
 
