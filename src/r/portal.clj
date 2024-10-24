@@ -36,10 +36,12 @@
   "Start portal instance and optionally open it in a browser"
   ([]
    (start! {:browse? false}))
-  ([{:keys [browse?]}]
-   (let [instance (portal.api/open {:window-title "monroe portal"
-                                    :theme ::missing
-                                    :launcher :emacs})
+  ([{:keys [browse?] :as opts}]
+   (let [instance (portal.api/open (merge
+                                    (dissoc opts :browse?)
+                                    {:window-title "monroe portal"
+                                     :theme :portal.colors/nord-light
+                                     :launcher :emacs}))
          url (portal.api/url instance)]
      (reset! instance instance)
      (reset! the-tap (add-tap #'portal.api/submit))
