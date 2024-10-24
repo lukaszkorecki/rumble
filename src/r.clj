@@ -7,9 +7,8 @@
    [clojure.string :as str]
    [clojure.tools.namespace.find :as ns.find]
    [clojure.tools.namespace.repl :as ns.repl]
-   [kaocha.repl]
-   [portal.api]
-   [portal.colors])
+   [utility-belt.component.system :as util.system]
+   [kaocha.repl])
   (:import
    (java.io
     File)))
@@ -27,12 +26,14 @@
   (ppn thing)
   thing)
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn ->pp
   "Pretty print in `->` threading macro. Optionally tag the thing with `:tag` to pp a hash map of `{tag thing}`"
   [thing tag]
   (pp {tag thing})
   thing)
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn ->>pp
   "Pretty print in `->>` threading macro. Optionally tag the thing with `:tag` to pp a hash map of `{tag thing}`"
   [tag thing]
@@ -47,6 +48,7 @@
   ([]
    (list-ns "./src/")))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn find-ns
   "Find namespace vars by a regex"
   [re]
@@ -71,7 +73,9 @@
         (printf ";; %s\n" n)))
     nss))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (def ^{:doc "alias for `r/tests`"} find-tests tests)
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (def ^{:doc "alias for `r/tests`"} find-test-ns tests)
 
 (defn describe-ns
@@ -99,13 +103,15 @@
        (clojure.string/join "\n")
        (println)))
 
-(def ^:private system-status (atom {}))
+(def system-store
+  (atom
+   {:sys-map-fn nil
+    :status nil}))
 
 (defn safe-to-refresh?
   "Check if refresh is safe, by verifying that application system is not running"
   []
-  (or (empty? @system-status)
-      (= #{false} (-> @system-status vals set))))
+  (not (= ::running (-> @system-store :status))))
 
 (defn refresh
   "Refresh changed namespaces, only if its safe"
@@ -114,6 +120,7 @@
     (ns.repl/refresh)
     ::system-running!))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn refresh-all
   "Refresh everything, only if its safe"
   []
@@ -121,84 +128,84 @@
     (ns.repl/refresh-all)
     ::system-running!))
 
-(defn system-ns
-  "Default finder for location of the system namespace.
-  It extracts the first segment of the namspace tree and appends `.user` to it.
-  "
-  []
-  (-> *ns*
-      str
-      (str/replace #"\..+" ".user")
-      symbol))
+(declare start-sys' stop-sys' restart-sys' get-sys')
 
-(defn ^:deprecated start-system!
-  "Given a namespace, usually some-service, do the following:
-  - find some-service.user namespace (by convention)
-  - refresh
-  - require the user ns e.g. some-service.user
-  - start  system, invoking somer-service.user/start
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+(defn start-system!
+  [& [component-map-fn]]
+  (swap! system-store (fn [{:keys [status sys-map-fn] :as state}]
+                        (if sys-map-fn
+                          (if (= ::running status)
+                            (do
+                              (println "System running")
+                              state)
 
-  The namespace has to contain the following:
+                            (do
+                              (println "Starting system")
+                              (start-sys')))
 
-  - `start` function that starts the system
-  - `stop` function that stops the system
-  - `SYS` - var that contains the system map, it can be an atom - whatever can keep a state
+                          (do
+                            (println "Initializing and starting system")
+                            (assert (qualified-symbol? component-map-fn) "Need a valid component map fn")
+                            (let [{:keys [start-system stop-system get-system]} (util.system/setup-for-dev
+                                                                                 {:component-map-fn component-map-fn
+                                                                                  :reloadable? true})]
 
-  > [!WARNING]
-  > best if the system is not running, or things will go south very quickly
+                              #_{:clj-kondo/ignore [:inline-def]}
+                              (def get-sys' get-system)
+                              #_{:clj-kondo/ignore [:inline-def]}
+                              (def start-sys' start-system)
+                              #_{:clj-kondo/ignore [:inline-def]}
+                              (def restart-sys' (fn [] (stop-system) (start-system)))
+                              #_{:clj-kondo/ignore [:inline-def]}
+                              (def stop-sys' stop-system))
 
-  Example: `(r/start-system! 'foo.user)`"
-  ([]
-   ;; automagically guess the <app>.user namespace
-   (let [dev-sys-ns (system-ns)]
-     (require dev-sys-ns)
-     (start-system! dev-sys-ns)))
-  ([dev-sys-ns]
-   (when (= "r" (str dev-sys-ns))
-     (throw (ex-info "not allowed" {:ns (str dev-sys-ns)})))
+                            (start-sys')
 
-   (printf ";; Starting %s\n" dev-sys-ns)
+                            (assoc state
+                                   :status ::running
+                                   :sys-map-fn component-map-fn))))))
 
-   (if (get @system-status dev-sys-ns)
-     (println ";; System possibly running" dev-sys-ns)
-     (do
-       (println ";; Refreshing and reloading " dev-sys-ns)
-       (remove-ns dev-sys-ns)
-       (refresh)
-       (require [dev-sys-ns] :reload)
-       (when-let [f (ns-resolve dev-sys-ns 'start)]
-         (f)
-         (swap! system-status (fn [s] (assoc s dev-sys-ns true))))))))
-
-(defn ^:deprecated stop-system!
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+(defn stop-system!
   "Given a namespace, usually some-service.user, stop the system. If not passed, stops currently running system"
-  ([]
-   (stop-system! (first (keys @system-status))))
-  ([dev-sys-ns]
-   (let [f (ns-resolve dev-sys-ns 'stop)]
-     (f)
-     (swap! system-status (fn [s] (assoc s dev-sys-ns false))))))
+  []
+  (swap! system-store (fn [{:keys [status sys-map-fn] :as state}]
+                        (if sys-map-fn
+                          (if (= ::running status)
+                            (do
+                              (println "Stopping system")
+                              (stop-sys')
+                              (assoc status :state ::stopped))
 
-(defn ^:deprecated restart-system!
+                            (do
+                              (println "System not running")
+                              state))
+
+                          (do
+                            (println "System machinery not initialized")
+                            state)))))
+
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+(defn restart-system!
   "Restarts the system with an optional reload. If the system is not running, it will start it"
   []
-  (when (first (keys @system-status))
-    (stop-system!))
-  (start-system!))
+  (restart-sys'))
 
 (defn sys
   "Get the running system map"
   []
-  (var-get (ns-resolve (first (keys @system-status)) 'SYS)))
+  (get-sys'))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn c
   "Get a component from the running system, e.g (r/c :postgres)"
   [component-key]
-  (when-let [sys (sys)]
-    (get sys component-key)))
+  (when-let [sys' (sys)]
+    (get sys' component-key)))
 
 ;;; Test helpers
-
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn t
   "Run tests via kaocha - either all or a list of vars.
   > [!NOTE]
@@ -208,6 +215,7 @@
   ([ns-list]
    (apply kaocha.repl/run ns-list)))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn t!
   "Run tests via kaocha, but refresh first - runs all tests or a list (or one) of ns vars.
 
@@ -219,13 +227,15 @@
    (kaocha.repl/run-all))
   ([& ns-list]
    (println (refresh))
-   (apply kaocha.repl/run ns-list)))
+   (apply kaocha.repl/run (flatten ns-list))))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn clear-aliases
   "Reset aliases for given ns or current one if no args given"
   ([]
    (clear-aliases *ns*))
   ([an-ns]
+   {:pre [(symbol? an-ns)]}
    (mapv #(ns-unalias an-ns %) (keys (ns-aliases an-ns)))))
 
 ;; Tap helpers
@@ -233,6 +243,7 @@
 (def ^:private tap-log (atom []))
 (def ^:private tap-ref (atom nil))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn ->tap>
   "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
@@ -241,6 +252,7 @@
    (tap> {tag thing})
    thing))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn ->>tap>
   "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
@@ -255,8 +267,10 @@
   (reset! tap-ref (add-tap (fn [input]
                              (swap! tap-log conj input)))))
 ;; muscle memory...
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (def init-tap-log! tap-log-init!)
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn tap-log-get
   "Return tap logged data"
   []
@@ -267,6 +281,7 @@
   []
   (reset! tap-log []))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn tap-log-stop!
   "Clear tap log and remove the listener"
   []
@@ -274,40 +289,7 @@
   (tap-log-clear!)
   (reset! tap-ref nil))
 
-(def portal-tap (atom nil))
-(def portal-instance (atom nil))
-
-;;; Experimental stuff
-
-(defn portal-start!
-  "Start portal instance and optionally open it in a browser"
-  ([]
-   (portal-start! {:browse? true}))
-  ([{:keys [browse?]}]
-   (let [instance (portal.api/open {:window-title "monroe portal"
-                                    :theme ::missing
-                                    :launcher false})
-         url (portal.api/url instance)]
-     (reset! portal-instance instance)
-     (reset! portal-tap (add-tap #'portal.api/submit))
-     (when browse?
-       (clojure.java.browse/browse-url url))
-     url)))
-
-(defn portal-clear!
-  "Clear current portal session view"
-  []
-  (portal.api/clear))
-
-(defn portal-stop!
-  "Stop portal session"
-  []
-  (swap! portal-tap remove-tap)
-  (portal.api/close @portal-instance))
-
-;; (defn portal-get []
-;;   (portal.api/selected @portal-instance))
-
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn help
   "Get help about all `r` functionality"
   []
