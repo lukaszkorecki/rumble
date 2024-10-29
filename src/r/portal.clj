@@ -26,6 +26,9 @@
 (defn diff [thing]
   (v :portal.viewer/diff thing))
 
+(defn exc [thing]
+  (v :portal.viewer/ex thing))
+
 (def the-tap (atom nil))
 (def instance (atom nil))
 
