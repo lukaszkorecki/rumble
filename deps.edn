@@ -1,6 +1,6 @@
 {:paths ["src"]
  :deps {org.clojure/tools.namespace {:mvn/version "1.5.0"}
-        org.clojars.lukaszkorecki/utility-belt {:mvn/version "2.0.0-SNAPSHOT-3"}
+        org.clojars.lukaszkorecki/utility-belt {:mvn/version "2.0.1-SNAPSHOT"}
         nrepl/nrepl {:mvn/version "1.3.0"}
         lambdaisland/kaocha {:mvn/version "1.91.1392"}
         djblue/portal {:mvn/version "0.58.2"}}
