@@ -238,56 +238,25 @@
    {:pre [(symbol? an-ns)]}
    (mapv #(ns-unalias an-ns %) (keys (ns-aliases an-ns)))))
 
-;; Tap helpers
-
-(def ^:private tap-log (atom []))
-(def ^:private tap-ref (atom nil))
-
 #_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-(defn ->tap>
+(defn tap->
   "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
-   (->tap> thing :->tap>))
+   (tap-> thing :tap->))
   ([thing tag]
    (tap> {tag thing})
    thing))
 
 #_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-(defn ->>tap>
+(defn tap->>
   "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
-   (->>tap> thing :->>tap>))
+   (tap->> thing :tap->>))
   ([tag thing]
    (tap> {tag thing})
    thing))
 
-(defn tap-log-init!
-  "Initialize a `tap>` listener and store the ref to it"
-  []
-  (reset! tap-ref (add-tap (fn [input]
-                             (swap! tap-log conj input)))))
-;; muscle memory...
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-(def init-tap-log! tap-log-init!)
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-(defn tap-log-get
-  "Return tap logged data"
-  []
-  @tap-log)
-
-(defn tap-log-clear!
-  "Clear the log"
-  []
-  (reset! tap-log []))
-
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
-(defn tap-log-stop!
-  "Clear tap log and remove the listener"
-  []
-  (remove-tap @tap-ref)
-  (tap-log-clear!)
-  (reset! tap-ref nil))
 
 #_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn help
@@ -300,6 +269,7 @@
   []
   (ns.repl/disable-reload! *ns*)
   (ns.repl/set-refresh-dirs "src" "test")
+  (require 'r.portal)
   (println "Rumble loaded, use (r/help) to get started"))
 
 (init!)
