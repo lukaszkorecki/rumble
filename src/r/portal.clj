@@ -32,30 +32,28 @@
 (def the-tap (atom nil))
 (def instance (atom nil))
 
-#_{:clj-kondo/ignore [:earmuffed-var-not-dynamic]}
-(def *log* (atom []))
+(def tap-log (atom []))
 
-(defn ^:private log [] @*log*)
+(defn ^:private log [] @tap-log)
 
 (defn submit! [msg]
-  (swap! *log* conj msg)
+  (swap! tap-log conj msg)
   (portal.api/submit msg))
-
-
 
 ;;; Experimental stuff
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn start!
   "Start portal instance and optionally open it in a browser"
   ([]
-   (start! {:browse? false}))
-  ([{:keys [browse?] :as opts}]
+   (start! {:browse? false :launcher :emacs}))
+  ([{:keys [browse? launcher]
+     :or {launcher :emacs}
+     :as opts}]
    (let [a-portal (portal.api/open (merge
                                     (dissoc opts :browse?)
                                     {:window-title "monroe portal"
                                      :theme :portal.colors/nord-light
-                                     :launcher :emacs}))
+                                     :launcher launcher}))
          url (portal.api/url a-portal)]
      (reset! instance a-portal)
      (reset! the-tap (add-tap submit!))
@@ -64,14 +62,12 @@
        (browse/browse-url url))
      url)))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn clear!
   "Clear current portal session view"
   []
-  (reset! *log* [])
+  (reset! tap-log [])
   (portal.api/clear))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn stop!
   "Stop portal session"
   []

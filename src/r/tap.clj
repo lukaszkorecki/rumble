@@ -11,10 +11,9 @@
   (reset! tap-ref (add-tap (fn [input]
                              (swap! tap-log conj input)))))
 ;; muscle memory...
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+
 (def init-log! log-init!)
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn log-get
   "Return tap logged data"
   []
@@ -25,7 +24,6 @@
   []
   (reset! tap-log []))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn log-stop!
   "Clear tap log and remove the listener"
   []

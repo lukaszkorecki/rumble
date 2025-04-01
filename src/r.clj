@@ -1,6 +1,7 @@
 (ns ^{:clojure.tools.namespace.repl/load false} r
   (:refer-clojure :exclude [find-ns])
   (:require
+   [babashka.process :as proc]
    [clojure.java.browse]
    [clojure.pprint]
    [clojure.repl]
@@ -26,14 +27,12 @@
   (ppn thing)
   thing)
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn ->pp
   "Pretty print in `->` threading macro. Optionally tag the thing with `:tag` to pp a hash map of `{tag thing}`"
   [thing tag]
   (pp {tag thing})
   thing)
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn ->>pp
   "Pretty print in `->>` threading macro. Optionally tag the thing with `:tag` to pp a hash map of `{tag thing}`"
   [tag thing]
@@ -48,7 +47,6 @@
   ([]
    (list-ns "./src/")))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn find-ns
   "Find namespace vars by a regex"
   [re]
@@ -63,9 +61,9 @@
   "Find test namespace vars by a regex"
   [pattern]
   (let [re (cond
-             (string? pattern) (re-pattern pattern)
-             (= java.util.regex.Pattern (class pattern)) pattern
-             :else (throw (ex-info "this is not a patternable thing" {:pattern pattern})))
+            (string? pattern) (re-pattern pattern)
+            (= java.util.regex.Pattern (class pattern)) pattern
+            :else (throw (ex-info "this is not a patternable thing" {:pattern pattern})))
         nss (vec (filter #(re-find re (str %)) (list-ns "./test/")))]
     (printf ";; found %s nss\n" (count nss))
     (when (<= (count nss) 10)
@@ -73,9 +71,8 @@
         (printf ";; %s\n" n)))
     nss))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (def ^{:doc "alias for `r/tests`"} find-tests tests)
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+
 (def ^{:doc "alias for `r/tests`"} find-test-ns tests)
 
 (defn describe-ns
@@ -120,7 +117,6 @@
     (ns.repl/refresh)
     ::system-running!))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn refresh-all
   "Refresh everything, only if its safe"
   []
@@ -130,7 +126,6 @@
 
 (declare start-sys' stop-sys' restart-sys' get-sys')
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn start-system!
   [& [component-map-fn]]
   (swap! system-store (fn [{:keys [status sys-map-fn] :as state}]
@@ -166,7 +161,6 @@
                                    :status ::running
                                    :sys-map-fn component-map-fn))))))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn stop-system!
   "Given a namespace, usually some-service.user, stop the system. If not passed, stops currently running system"
   []
@@ -186,7 +180,6 @@
                             (println "System machinery not initialized")
                             state)))))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn restart-system!
   "Restarts the system with an optional reload. If the system is not running, it will start it"
   []
@@ -197,7 +190,6 @@
   []
   (get-sys'))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn c
   "Get a component from the running system, e.g (r/c :postgres)"
   [component-key]
@@ -205,7 +197,7 @@
     (get sys' component-key)))
 
 ;;; Test helpers
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
+
 (defn t
   "Run tests via kaocha - either all or a list of vars.
   > [!NOTE]
@@ -215,7 +207,6 @@
   ([ns-list]
    (apply kaocha.repl/run ns-list)))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn t!
   "Run tests via kaocha, but refresh first - runs all tests or a list (or one) of ns vars.
 
@@ -229,7 +220,6 @@
    (println (refresh))
    (apply kaocha.repl/run (flatten ns-list))))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn clear-aliases
   "Reset aliases for given ns or current one if no args given"
   ([]
@@ -238,7 +228,6 @@
    {:pre [(symbol? an-ns)]}
    (mapv #(ns-unalias an-ns %) (keys (ns-aliases an-ns)))))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn tap->
   "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
@@ -247,7 +236,6 @@
    (tap> {tag thing})
    thing))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn tap->>
   "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
@@ -256,9 +244,23 @@
    (tap> {tag thing})
    thing))
 
+(defn fmt-all!
+  "Format all Clojure files in the project using `clojure-lsp` binary"
+  []
+  (let [git-root (-> (proc/sh "git" "rev-parse" "--show-toplevel") :out str/trim)
+        fmt-cmd (str git-root "/node_modules/.bin/clojure-lsp --lint --fix --lint-ns \"src/\"")]
+    (println "Formatting all Clojure files in the project")
+    (println fmt-cmd)
+    (proc/sh "sh" "-c" fmt-cmd)))
 
+(defn classpath->vec
+  "Return class path as vector of absolute paths"
+  []
+  (->> (java.lang.System/getProperty "java.class.path")
+       (re-seq #"[^;]+")
+       (mapcat #(clojure.string/split % #":"))
+       vec))
 
-#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn help
   "Get help about all `r` functionality"
   []
@@ -268,6 +270,7 @@
   "Initialize `r`umble helpers"
   []
   (ns.repl/disable-reload! *ns*)
+  (ns.repl/disable-unload! *ns*)
   (ns.repl/set-refresh-dirs "src" "test")
   (require 'r.portal)
   (println "Rumble loaded, use (r/help) to get started"))
