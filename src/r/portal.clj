@@ -62,6 +62,9 @@
        (browse/browse-url url))
      url)))
 
+(defn get-selected []
+  @instance)
+
 (defn clear!
   "Clear current portal session view"
   []
