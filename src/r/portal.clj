@@ -45,8 +45,8 @@
 (defn start!
   "Start portal instance and optionally open it in a browser"
   ([]
-   (start! {:browse? false :launcher false :launch-ui false}))
-  ([{:keys [browse? launcher launch-ui]
+   (start! {:browse? false :launcher false}))
+  ([{:keys [browse? launcher]
      :or {launcher false}
      :as opts}]
    (let [a-portal (portal.api/open (merge
@@ -60,10 +60,6 @@
 
      (when browse?
        (browse/browse-url url))
-
-     (when (= :internal launch-ui)
-       (require 'r.webview)
-       (r.webview/browse url))
 
      url)))
 
