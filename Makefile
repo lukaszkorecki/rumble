@@ -27,5 +27,5 @@ publish:
 release: clean jar publish
 
 
-install:
+install: jar
 	clj -T:build install $(snapshot)
