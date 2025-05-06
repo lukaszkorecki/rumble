@@ -33,7 +33,8 @@
 ;; http:// is prepended, if not - it adds it then loads the web-view vis the :url keyword.
 
 (def *state (atom {::partial-url ""
-                   ::current-url ""}))
+                   ::current-url ""
+                   ::title "Portal"}))
 
 (defn top-pane [{:keys [state]}]
   {:fx/type :h-box
@@ -65,7 +66,7 @@
 (defn root [state]
   {:fx/type :stage
    :showing true
-   :title "Simple web browser"
+   :title (::title state)
    :scene {:fx/type :scene
            :root {:fx/type body-pane :state state}}})
 
@@ -87,10 +88,12 @@
 
 (def ui-state (atom nil))
 
-(defn browse [url]
+(defn browse [url & {:keys [title] :or {title url}}]
   (fx/on-fx-thread
-   (reset! *state {::current-url url ::partial-url url})
-   (swap! ui-state (fn [state]
-                     (if state
-                       state
+   (reset! *state {::current-url url
+                   ::partial-url url
+                   ::title title})
+   (swap! ui-state (fn [instance]
+                     (if instance
+                       instance
                        (fx/mount-renderer *state renderer))))))

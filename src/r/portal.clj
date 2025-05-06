@@ -3,6 +3,7 @@
    [clojure.java.browse :as browse]
    [clojure.tools.namespace.repl :as ns.repl]
    [portal.api :as portal]
+   [portal.runtime.browser :as portal.browser]
    [portal.colors]))
 
 (set! *warn-on-reflection* true)
@@ -40,7 +41,10 @@
   (swap! tap-log conj msg)
   (portal.api/submit msg))
 
-;;; Experimental stuff
+(defmethod portal.browser/-open :cljfx [{:keys [portal server]}]
+  (let [url (str "http://" (:host server) ":" (:port server) "?" (:session-id portal))
+        browse (requiring-resolve 'r.webview/browse)]
+    (browse url {:title (str "Portal - " url)})))
 
 (defn start!
   "Start portal instance and optionally open it in a browser"
