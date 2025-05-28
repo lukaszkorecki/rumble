@@ -11,15 +11,9 @@
 
 ;; we need this because JDK11 blows up on mac-os regardless of how it was installed
 (when (< java-major-version 21)
-  (throw (ex-info "Java 21 or higher is required" {})))
+  (println "WARNING: You are using a JDK version < 21, which may cause issues with the web-view on macOS. Consider using JDK 21 or later."))
 
 ;; Kick off, based on examples in clfx repo
-
-;; A simple web browser
-;; ====================
-;;
-;; This example requires one additional property from web-view in order to understand when a link on a web page has been
-;; clicked. See the README.md and e21-extension-lifecycle for some additional examples of this.
 
 (def web-view-with-ext-props
   (fx/make-ext-with-props
@@ -28,13 +22,9 @@
                                     lifecycle/change-listener)}))
 ;; A well known URL
 
-;; The strategy here is to have a partial-url associated with the text field so that typing into the text field
-;; does not act as a URL until the return button is pressed. The resulting url is checked to see if the (usually omitted)
-;; http:// is prepended, if not - it adds it then loads the web-view vis the :url keyword.
-
 (def *state (atom {::partial-url ""
                    ::current-url ""
-                   ::title "Portal"}))
+                   ::title "a browser"}))
 
 (defn top-pane [{:keys [state]}]
   {:fx/type :h-box
@@ -71,9 +61,15 @@
            :root {:fx/type body-pane :state state}}})
 
 (defn normalise [s]
-  (if (str/starts-with? s "http")
-    s
-    (str "http://" s)))
+  (cond
+    (str/starts-with? s "http") s
+    (str/starts-with? s "file:") s
+    :else (str "http://" s)))
+
+(defn uri->title [s]
+  (let [{:keys [host rawPath]} (java.net.URI. s)]
+    (format "%s/%s" host rawPath)))
+
 
 (defn event-handler [{:keys [fx/event event/type]}]
   (case type
@@ -92,7 +88,7 @@
   (fx/on-fx-thread
    (reset! *state {::current-url url
                    ::partial-url url
-                   ::title title})
+                   ::title (or title  (uri->title (normalise url)))})
    (swap! ui-state (fn [instance]
                      (if instance
                        instance
