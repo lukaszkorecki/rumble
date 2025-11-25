@@ -45,13 +45,13 @@
 (defn start!
   "Start portal instance and optionally open it in a browser"
   ([]
-   (start! {:browse? false :launcher :emacs}))
+   (start! {:browse? false :launcher :cljfx}))
   ([{:keys [browse? launcher]
-     :or {launcher :emacs}
+     :or {launcher :cljfx}
      :as opts}]
    (let [a-portal (portal.api/open (merge
                                     (dissoc opts :browse?)
-                                    {:window-title "monroe portal"
+                                    {:window-title "Portal"
                                      :theme :portal.colors/nord-light
                                      :launcher launcher}))
          url (portal.api/url a-portal)]

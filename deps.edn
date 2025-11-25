@@ -5,7 +5,7 @@
         lambdaisland/kaocha {:mvn/version "1.91.1392"}
         djblue/portal {:mvn/version "0.62.0"}
         babashka/process {:mvn/version "0.6.23"}
-
+        org.clojars.lukaszkorecki/portal.browser.cljfx {:mvn/version "1.0.0.7"}
         org.clojure/java.doc {:git/url "https://github.com/clojure/java.doc"
                               :git/tag "v0.1.2"
                               :git/sha "fc518b1"}}
