@@ -1,12 +1,10 @@
 (ns ^{:clojure.tools.namespace.repl/load false} r
   (:refer-clojure :exclude [find-ns])
   (:require
-   [babashka.process :as proc]
    [clojure.java.browse]
+   [clojure.java.javadoc :as javadoc]
    [clojure.pprint]
    [clojure.repl]
-   [clojure.java.javadoc]
-   clojure.java.doc.api
    [clojure.string :as str]
    [clojure.tools.namespace.find :as ns.find]
    [clojure.tools.namespace.repl :as ns.repl]
@@ -204,10 +202,8 @@
   `(clojure.repl/doc ~thing))
 
 #_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
-(def javadoc clojure.java.javadoc/javadoc)
+(def javadoc javadoc/javadoc)
 
-#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
-(defmacro jdoc [thing] `(clojure.java.doc.api/jdoc ~thing))
 
 (defn- init!
   "Initialize `r`umble helpers"
