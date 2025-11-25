@@ -1,10 +1,5 @@
-.PHONY: test update-deps release clean jar publish
+.PHONY: test update-deps release clean jar publish install help
 
-
-test:
-	clj -M:dev:test
-
-	clj -M:benchmark
 
 update-deps:
 	clj -M:dev/outdated
@@ -29,3 +24,9 @@ release: clean jar publish
 
 install:
 	clj -T:build install $(snapshot)
+
+
+help:
+	@echo $(MAKEFILE_LIST)
+	@echo "Available commands:"
+	@grep -E '^[a-zA-Z_-]+:.*' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*? "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
