@@ -5,10 +5,11 @@
    [clojure.java.browse]
    [clojure.pprint]
    [clojure.repl]
+   [clojure.java.javadoc]
+   clojure.java.doc.api
    [clojure.string :as str]
    [clojure.tools.namespace.find :as ns.find]
    [clojure.tools.namespace.repl :as ns.repl]
-   [utility-belt.component.system :as util.system]
    [kaocha.repl])
   (:import
    (java.io
@@ -27,12 +28,14 @@
   (ppn thing)
   thing)
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn ->pp
   "Pretty print in `->` threading macro. Optionally tag the thing with `:tag` to pp a hash map of `{tag thing}`"
   [thing tag]
   (pp {tag thing})
   thing)
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn ->>pp
   "Pretty print in `->>` threading macro. Optionally tag the thing with `:tag` to pp a hash map of `{tag thing}`"
   [tag thing]
@@ -47,6 +50,7 @@
   ([]
    (list-ns "./src/")))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn find-ns
   "Find namespace vars by a regex"
   [re]
@@ -71,15 +75,19 @@
         (printf ";; %s\n" n)))
     nss))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (def ^{:doc "alias for `r/tests`"} find-tests tests)
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (def ^{:doc "alias for `r/tests`"} find-test-ns tests)
 
 (defn describe-ns
   "Describes given namespace by listing **public** symbols, optionally filters down via `:s <search>`
   and can optionally add the doc string with `:docs?` true"
   [an-ns & {:keys [s docs?]}]
-  (->> an-ns
+  (->> (if (symbol? an-ns)
+         (clojure.core/find-ns an-ns)
+         an-ns)
        (ns-publics)
        (filter (fn [[sym _thing]]
                  (if s
@@ -100,6 +108,14 @@
        (clojure.string/join "\n")
        (println)))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
+(defn clear-aliases
+  "Reset aliases for given ns or current one if no args given"
+  ([]
+   (clear-aliases *ns*))
+  ([an-ns]
+   (mapv #(ns-unalias an-ns %) (keys (ns-aliases an-ns)))))
+
 (def system-store
   (atom
    {:sys-map-fn nil
@@ -109,6 +125,7 @@
   "Check if refresh is safe, by verifying that application system is not running"
   []
   (not (= ::running (-> @system-store :status))))
+
 
 (defn refresh
   "Refresh changed namespaces, only if its safe"
@@ -124,80 +141,9 @@
     (ns.repl/refresh-all)
     ::system-running!))
 
-(declare start-sys' stop-sys' restart-sys' get-sys')
-
-(defn start-system!
-  [& [component-map-fn]]
-  (swap! system-store (fn [{:keys [status sys-map-fn] :as state}]
-                        (if sys-map-fn
-                          (if (= ::running status)
-                            (do
-                              (println "System running")
-                              state)
-
-                            (do
-                              (println "Starting system")
-                              (start-sys')))
-
-                          (do
-                            (println "Initializing and starting system")
-                            (assert (qualified-symbol? component-map-fn) "Need a valid component map fn")
-                            (let [{:keys [start-system stop-system get-system]} (util.system/setup-for-dev
-                                                                                 {:component-map-fn component-map-fn
-                                                                                  :reloadable? true})]
-
-                              #_{:clj-kondo/ignore [:inline-def]}
-                              (def get-sys' get-system)
-                              #_{:clj-kondo/ignore [:inline-def]}
-                              (def start-sys' start-system)
-                              #_{:clj-kondo/ignore [:inline-def]}
-                              (def restart-sys' (fn [] (stop-system) (start-system)))
-                              #_{:clj-kondo/ignore [:inline-def]}
-                              (def stop-sys' stop-system))
-
-                            (start-sys')
-
-                            (assoc state
-                                   :status ::running
-                                   :sys-map-fn component-map-fn))))))
-
-(defn stop-system!
-  "Given a namespace, usually some-service.user, stop the system. If not passed, stops currently running system"
-  []
-  (swap! system-store (fn [{:keys [status sys-map-fn] :as state}]
-                        (if sys-map-fn
-                          (if (= ::running status)
-                            (do
-                              (println "Stopping system")
-                              (stop-sys')
-                              (assoc status :state ::stopped))
-
-                            (do
-                              (println "System not running")
-                              state))
-
-                          (do
-                            (println "System machinery not initialized")
-                            state)))))
-
-(defn restart-system!
-  "Restarts the system with an optional reload. If the system is not running, it will start it"
-  []
-  (restart-sys'))
-
-(defn sys
-  "Get the running system map"
-  []
-  (get-sys'))
-
-(defn c
-  "Get a component from the running system, e.g (r/c :postgres)"
-  [component-key]
-  (when-let [sys' (sys)]
-    (get sys' component-key)))
-
 ;;; Test helpers
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn t
   "Run tests via kaocha - either all or a list of vars.
   > [!NOTE]
@@ -207,6 +153,7 @@
   ([ns-list]
    (apply kaocha.repl/run ns-list)))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn t!
   "Run tests via kaocha, but refresh first - runs all tests or a list (or one) of ns vars.
 
@@ -220,14 +167,7 @@
    (println (refresh))
    (apply kaocha.repl/run (flatten ns-list))))
 
-(defn clear-aliases
-  "Reset aliases for given ns or current one if no args given"
-  ([]
-   (clear-aliases *ns*))
-  ([an-ns]
-   {:pre [(symbol? an-ns)]}
-   (mapv #(ns-unalias an-ns %) (keys (ns-aliases an-ns)))))
-
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn tap->
   "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
@@ -236,6 +176,7 @@
    (tap> {tag thing})
    thing))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn tap->>
   "Like `tap>` but returns input, and is designed for threading macros. Optionally tag the thing with `:tag` to tap a hash map of `{tag thing}`"
   ([thing]
@@ -244,15 +185,8 @@
    (tap> {tag thing})
    thing))
 
-(defn fmt-all!
-  "Format all Clojure files in the project using `clojure-lsp` binary"
-  []
-  (let [git-root (-> (proc/sh "git" "rev-parse" "--show-toplevel") :out str/trim)
-        fmt-cmd (str git-root "/node_modules/.bin/clojure-lsp --lint --fix --lint-ns \"src/\"")]
-    (println "Formatting all Clojure files in the project")
-    (println fmt-cmd)
-    (proc/sh "sh" "-c" fmt-cmd)))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn classpath->vec
   "Return class path as vector of absolute paths"
   []
@@ -261,17 +195,29 @@
        (mapcat #(clojure.string/split % #":"))
        vec))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn help
   "Get help about all `r` functionality"
   []
   (describe-ns 'r :doc true))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
+(def doc clojure.repl/doc)
+
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
+(def javadoc clojure.java.javadoc/javadoc)
+
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
+(def jdoc clojure.java.doc.api/jdoc)
+
 (defn- init!
   "Initialize `r`umble helpers"
   []
+  (println "Hello, let's get ready to Rumble!")
   (ns.repl/disable-reload! *ns*)
   (ns.repl/disable-unload! *ns*)
   (ns.repl/set-refresh-dirs "src" "test")
+  (println "Loading r.portal")
   (require 'r.portal)
   (println "Rumble loaded, use (r/help) to get started"))
 

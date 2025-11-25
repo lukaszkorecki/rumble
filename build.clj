@@ -3,7 +3,7 @@
             [deps-deploy.deps-deploy :as dd]))
 
 (def lib 'org.clojars.lukaszkorecki/rumble)
-(def version-stable (format "1.0.0.%s" (b/git-count-revs nil)))
+(def version-stable (format "1.1.0.%s" (b/git-count-revs nil)))
 (defn version-snapshot [suffix] (format "%s-SNAPSHOT-%s" version-stable suffix))
 
 (def class-dir "target/classes")
