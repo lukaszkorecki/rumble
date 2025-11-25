@@ -126,7 +126,6 @@
   []
   (not (= ::running (-> @system-store :status))))
 
-
 (defn refresh
   "Refresh changed namespaces, only if its safe"
   []
@@ -185,7 +184,6 @@
    (tap> {tag thing})
    thing))
 
-
 #_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn classpath->vec
   "Return class path as vector of absolute paths"
@@ -202,13 +200,14 @@
   (describe-ns 'r :doc true))
 
 #_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
-(def doc clojure.repl/doc)
+(defmacro doc [thing]
+  `(clojure.repl/doc ~thing))
 
 #_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (def javadoc clojure.java.javadoc/javadoc)
 
 #_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
-(def jdoc clojure.java.doc.api/jdoc)
+(defmacro jdoc [thing] `(clojure.java.doc.api/jdoc ~thing))
 
 (defn- init!
   "Initialize `r`umble helpers"
