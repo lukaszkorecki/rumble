@@ -2,6 +2,7 @@
   (:require
    [clojure.java.browse :as browse]
    [clojure.tools.namespace.repl :as ns.repl]
+   [portal.browse.cljfx] ;; register cljfx launcher
    [portal.api :as portal]
    [portal.colors]))
 
@@ -19,9 +20,6 @@
 
 (defn hiccup [thing]
   (v :portal.viewer/hiccup thing))
-
-(defn test-report [thing]
-  (v :portal.viewer/test-report thing))
 
 (defn diff [thing]
   (v :portal.viewer/diff thing))
