@@ -10,55 +10,43 @@
 
 (ns.repl/disable-reload! *ns*)
 
-(defn v [type thing]
+(defn ->v [type thing]
   (with-meta
     thing
     {:portal.viewer/default type}))
 
-(defn table [thing]
-  (v :portal.viewer/table thing))
+(defmulti view (fn [type _thing] type))
 
-(defn hiccup [thing]
-  (v :portal.viewer/hiccup thing))
+;; fallback viewer, tries to convert type to :portal.viewer/<type>
+(defmethod view :default [type thing]
+  (->v (keyword "portal.viewer" (name type)) thing))
 
-(defn diff [thing]
-  (v :portal.viewer/diff thing))
+;; special cases
+(defmethod view :markdown [_type thing]
+  (->v :portal.viewer/hiccup [:portal.viewer/markdown thing]))
 
-(defn exc [thing]
-  (v :portal.viewer/ex thing))
+(defmethod view :html [_type thing]
+  (->v :portal.viewer/hiccup [:portal.viewer/html thing]))
+
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
+(defn all-viewers []
+  (let [viewer-kws (sort (map keyword (keys (ns-publics 'portal.viewer))))]
+
+    (remove #(= :for %) viewer-kws)))
 
 (def the-tap (atom nil))
 (def instance (atom nil))
 
 (def tap-log (atom []))
 
+#_{:clj-kondo/ignore [:unused-private-var]}
 (defn ^:private log [] @tap-log)
 
 (defn submit! [msg]
   (swap! tap-log conj msg)
   (portal.api/submit msg))
 
-(defn foo [] (println "r.portal loaded"))
-
-(pc/register! ::pc/github
-              {::pc/text "#24292f" ; Standard text color
-               ::pc/background "#ffffff" ; Main background (white)
-               ::pc/background2 "#f6f8fa" ; Secondary background (lighter gray)
-               ::pc/boolean "#0550ae" ; Blue for booleans
-               ::pc/string "#0a3069" ; Dark blue for strings
-               ::pc/keyword "#8250df" ; Purple for keywords
-               ::pc/namespace "#0550ae" ; Blue for namespaces
-               ::pc/tag "#116329" ; Green for tags
-               ::pc/symbol "#24292f" ; Standard text for symbols
-               ::pc/number "#0550ae" ; Blue for numbers
-               ::pc/uri "#0969da" ; Link blue for URIs
-               ::pc/border "#d0d7de" ; Border gray
-               ::pc/package "#0969da" ; Link blue for packages
-               ::pc/exception "#cf222e" ; Red for exceptions
-               ::pc/diff-add "#1a7f37" ; Green for additions
-               ::pc/diff-remove "#cf222e"} ; Red for removals
-              )
-
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn start!
   "Start portal instance and optionally open it in a browser"
   ([]
@@ -69,7 +57,7 @@
    (let [a-portal (portal.api/open (merge
                                     (dissoc opts :browse?)
                                     {:window-title "Portal"
-                                     :theme ::pc/github
+                                     :theme ::pc/nord-light
                                      :launcher launcher}))
          url (portal.api/url a-portal)]
      (reset! instance a-portal)
@@ -79,15 +67,18 @@
        (browse/browse-url url))
      url)))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn get-selected []
   @@instance)
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn clear!
   "Clear current portal session view"
   []
   (reset! tap-log [])
   (portal.api/clear))
 
+#_{:clojure-lsp/ignore [:clojure-lsp/unused-public-var]}
 (defn stop!
   "Stop portal session"
   []
